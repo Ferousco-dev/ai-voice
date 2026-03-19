@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>ReciteAI</title>
+    <style>
+      body {
+        font-family: Arial;
+        text-align: center;
+        background: #064e3b;
+        color: white;
+        padding: 40px;
+      }
+
+      textarea {
+        width: 80%;
+        height: 150px;
+        border-radius: 10px;
+        padding: 10px;
+      }
+
+      button {
+        padding: 12px 25px;
+        margin-top: 20px;
+        margin-left: 10px;
+        background: gold;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        font-weight: bold;
+        transition: all 0.3s;
+      }
+
+      button:hover:not(:disabled) {
+        background: #ffd700;
+        transform: scale(1.05);
+      }
+
+      button:disabled {
+        background: #888;
+        cursor: not-allowed;
+        opacity: 0.6;
+      }
+
+      #downloadBtn {
+        background: #4caf50;
+        display: none;
+      }
+
+      #downloadBtn:hover {
+        background: #45a049;
+      }
+
+      .loading {
+        margin-top: 20px;
+        color: #ffd700;
+        font-size: 16px;
+        display: none;
+      }
+
+      .spinner {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid rgba(255, 215, 0, 0.3);
+        border-top: 3px solid #ffd700;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-right: 10px;
+        vertical-align: middle;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      audio {
+        margin-top: 20px;
+        width: 80%;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🎧 ReciteAI</h1>
+    <p>Paste your text and hear it in recitation style</p>
+
+    <textarea id="text"></textarea><br />
+
+    <button onclick="generate()" id="genBtn">Generate</button>
+    <button onclick="downloadAudio()" id="downloadBtn">📥 Download</button>
+
+    <div class="loading" id="loading">
+      <span class="spinner"></span>
+      Generating audio...
+    </div>
+
+    <br /><br />
+    <audio id="player" controls></audio>
+
+    <script>
+      let currentAudioData = null;
+
+      async function generate() {
+        let text = document.getElementById("text").value;
+
+        if (!text.trim()) {
+          alert("Please enter some text first!");
+          return;
+        }
+
+        const baseUrl = `${window.location.protocol}//${window.location.host}`;
+        const genBtn = document.getElementById("genBtn");
+        const loading = document.getElementById("loading");
+        const downloadBtn = document.getElementById("downloadBtn");
+
+        // Show loading state
+        genBtn.disabled = true;
+        loading.style.display = "block";
+        downloadBtn.style.display = "none";
+
+        try {
+          let res = await fetch(`${baseUrl}/api/tts`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text }),
+          });
+
+          let data = await res.json();
+
+          if (res.ok) {
+            currentAudioData = data.audio;
+            document.getElementById("player").src = data.audio;
+            downloadBtn.style.display = "inline-block";
+          } else {
+            alert("Error: " + (data.message || "Failed to generate audio"));
+          }
+        } catch (error) {
+          alert("Error generating audio: " + error.message);
+        } finally {
+          genBtn.disabled = false;
+          loading.style.display = "none";
+        }
+      }
+
+      function downloadAudio() {
+        if (!currentAudioData) {
+          alert("Please generate audio first!");
+          return;
+        }
+
+        const link = document.createElement("a");
+        link.href = currentAudioData;
+        link.download = "recite_audio_" + new Date().getTime() + ".mp3";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    </script>
+  </body>
+</html>
